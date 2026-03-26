@@ -7,12 +7,25 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		125A0DBA2F6B1BA800B7F0C5 /* Space Trader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Space Trader.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		12283BEE2F732268002E231D /* Space Trader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Space Trader.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		12283C0C2F732916002E231D /* Exceptions for "Space Trader" folder in "Space Trader" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"Space-Trader-Info.plist",
+			);
+			target = 125A0DB92F6B1BA800B7F0C5 /* Space Trader */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		125A0DBC2F6B1BA800B7F0C5 /* Space Trader */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				12283C0C2F732916002E231D /* Exceptions for "Space Trader" folder in "Space Trader" target */,
+			);
 			path = "Space Trader";
 			sourceTree = "<group>";
 		};
@@ -33,16 +46,8 @@
 			isa = PBXGroup;
 			children = (
 				125A0DBC2F6B1BA800B7F0C5 /* Space Trader */,
-				125A0DBB2F6B1BA800B7F0C5 /* Products */,
+				12283BEE2F732268002E231D /* Space Trader.app */,
 			);
-			sourceTree = "<group>";
-		};
-		125A0DBB2F6B1BA800B7F0C5 /* Products */ = {
-			isa = PBXGroup;
-			children = (
-				125A0DBA2F6B1BA800B7F0C5 /* Space Trader.app */,
-			);
-			name = Products;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -67,7 +72,7 @@
 			packageProductDependencies = (
 			);
 			productName = "Space Trader";
-			productReference = 125A0DBA2F6B1BA800B7F0C5 /* Space Trader.app */;
+			productReference = 12283BEE2F732268002E231D /* Space Trader.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -95,7 +100,7 @@
 			mainGroup = 125A0DB12F6B1BA800B7F0C5;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 125A0DBB2F6B1BA800B7F0C5 /* Products */;
+			productRefGroup = 125A0DB12F6B1BA800B7F0C5;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -253,6 +258,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Space-Trader-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -284,6 +290,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "Space-Trader-Info.plist";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

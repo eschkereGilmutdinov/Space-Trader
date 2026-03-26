@@ -14,10 +14,9 @@ struct ContentView: View {
         TabView(selection: $selectedTab) {
             StationView()
                 .tabItem {
-                    Label("Главная", systemImage: "house")
+                    Label("Станции", systemImage: "house")
                 }
                 .tag(Tab.home)
-
             TradeView()
                 .tabItem {
                     Label("Торговля", systemImage: "cart")
@@ -25,7 +24,7 @@ struct ContentView: View {
                 .tag(Tab.trade)
             UpgradeView()
                 .tabItem {
-                    Label("Улучшения", systemImage: "upgrade")
+                    Label("Улучшения", systemImage: "globe")
                 }
                 .tag(Tab.upgrade)
             ProfileView()
