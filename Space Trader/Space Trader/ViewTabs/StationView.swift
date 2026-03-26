@@ -23,55 +23,15 @@ struct StationView: View {
                             } label: {
                                 HStack {
                                     if index % 2 == 0 {
-                                        Text(station.name)
-                                            .font(.custom("Montserrat-Regular", size: 20))
-                                            .foregroundStyle(
-                                                LinearGradient(
-                                                    stops: [
-                                                        .init(color: .white, location: 0.0),
-                                                        .init(color: Color(red: 0.953, green: 0.969, blue: 1.0), location: 0.45),
-                                                        .init(color: Color(red: 0.812, green: 0.902, blue: 1.0), location: 1.0)
-                                                    ],
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                )
-                                            )
-                                            .tracking(0.4)
-											.bold()
-
+										TextRow(station: station)
                                         Spacer()
-
-                                        Image(station.imageName ?? "globe")
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 110, height: 110)
-                                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                                            .matchedTransitionSource(id: station.id, in: ns)
+										ImageRow(station: station)
+											.matchedTransitionSource(id: station.id, in: ns)
                                     } else {
-                                        Image(station.imageName ?? "globe")
-                                            .resizable()
-                                            .scaledToFit()
-                                            .frame(width: 110, height: 110)
-                                            .clipShape(RoundedRectangle(cornerRadius: 12))
+										ImageRow(station: station)
                                             .matchedTransitionSource(id: station.id, in: ns)
-
                                         Spacer()
-
-                                        Text(station.name)
-                                            .font(.custom("Montserrat-Regular", size: 20))
-                                            .foregroundStyle(
-                                                LinearGradient(
-                                                    stops: [
-                                                        .init(color: .white, location: 0.0),
-                                                        .init(color: Color(red: 0.953, green: 0.969, blue: 1.0), location: 0.45),
-                                                        .init(color: Color(red: 0.812, green: 0.902, blue: 1.0), location: 1.0)
-                                                    ],
-                                                    startPoint: .topLeading,
-                                                    endPoint: .bottomTrailing
-                                                )
-                                            )
-											.tracking(0.4)
-											.bold()
+										TextRow(station: station)
                                     }
                                 }
                                 .padding(.horizontal, 28)

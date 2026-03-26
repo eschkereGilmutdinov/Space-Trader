@@ -10,22 +10,9 @@
 		12283BEE2F732268002E231D /* Space Trader.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Space Trader.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		12283C0C2F732916002E231D /* Exceptions for "Space Trader" folder in "Space Trader" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"Space-Trader-Info.plist",
-			);
-			target = 125A0DB92F6B1BA800B7F0C5 /* Space Trader */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
-
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		125A0DBC2F6B1BA800B7F0C5 /* Space Trader */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				12283C0C2F732916002E231D /* Exceptions for "Space Trader" folder in "Space Trader" target */,
-			);
 			path = "Space Trader";
 			sourceTree = "<group>";
 		};
