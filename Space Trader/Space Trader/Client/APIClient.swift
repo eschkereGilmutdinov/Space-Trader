@@ -10,6 +10,9 @@ struct AuthResponse: Decodable {
 struct MeResponse: Decodable {
 	let userId: UUID
 	let username: String
+	let level: Int
+	let experience: Int
+	let balance: Double
 }
 
 struct RegisterRequest: Encodable {
@@ -20,6 +23,65 @@ struct RegisterRequest: Encodable {
 struct LoginRequest: Encodable {
 	let username: String
 	let password: String
+}
+
+struct UpdateExperienceRequest: Encodable {
+	let experience: Int
+}
+
+struct InventoryItem: Identifiable, Codable, Hashable {
+	let itemId: String
+	let name: String
+	let description: String
+	let price: Int
+	let quantity: Int
+	
+	var id: String { itemId }
+	
+	var tradeItem: TradeItem {
+		TradeItem(
+			id: itemId,
+			name: name,
+			price: price,
+			description: description
+		)
+	}
+}
+
+struct InventoryResponse: Decodable {
+	let items: [InventoryItem]
+}
+
+struct TradeResponse: Decodable {
+	let user: MeResponse
+	let inventory: InventoryResponse
+}
+
+struct TradeRequest: Encodable {
+	let stationId: String
+	let itemId: String
+}
+
+struct UserUpgradesResponse: Decodable {
+	let speedLevel: Int
+	let profitLevel: Int
+	let fuelEfficiencyLevel: Int
+	let durabilityLevel: Int
+	let maxLevel: Int
+	
+	let speedCost: Double?
+	let profitCost: Double?
+	let fuelEfficiencyCost: Double?
+	let durabilityCost: Double?
+}
+
+struct UpgradePurchaseResponse: Decodable {
+	let user: MeResponse
+	let upgrades: UserUpgradesResponse
+}
+
+struct UpgradeRequest: Encodable {
+	let type: String
 }
 
 private struct EmptyResponse: Decodable {}
@@ -40,6 +102,56 @@ final class APIClient {
 		encoder.dateEncodingStrategy = .iso8601
 		return encoder
 	}()
+	
+	func upgrades(token: String) async throws -> UserUpgradesResponse {
+		try await send(
+			path: "/auth/upgrades",
+			method: "GET",
+			body: Optional<String>.none,
+			token: token,
+			responseType: UserUpgradesResponse.self
+		)
+	}
+	
+	func buyUpgrades(token: String, type: String) async throws -> UpgradePurchaseResponse {
+		try await send(
+			path: "/auth/upgrades/buy",
+			method: "POST",
+			body: UpgradeRequest(type: type),
+			token: token,
+			responseType: UpgradePurchaseResponse.self
+		)
+	}
+	
+	func inventory(token: String) async throws -> InventoryResponse {
+		try await send(
+			path: "/auth/inventory",
+			method: "GET",
+			body: Optional<String>.none,
+			token: token,
+			responseType: InventoryResponse.self
+		)
+	}
+	
+	func buy(token: String, stationId: String, itemId: String) async throws -> TradeResponse {
+		try await send(
+			path: "/auth/trade/buy",
+			method: "POST",
+			body: TradeRequest(stationId: stationId, itemId: itemId),
+			token: token,
+			responseType: TradeResponse.self
+		)
+	}
+	
+	func sell(token: String, stationId: String, itemId: String) async throws -> TradeResponse {
+		try await send(
+			path: "auth/trade/sell",
+			method: "POST",
+			body: TradeRequest(stationId: stationId, itemId: itemId),
+			token: token,
+			responseType: TradeResponse.self
+		)
+	}
 	
 	func register(username: String, password: String) async throws -> AuthResponse {
 		try await send(
@@ -79,6 +191,15 @@ final class APIClient {
 			token: token,
 			responseType: EmptyResponse.self
 		)
+	}
+	
+	func updateExperience(token: String, experience: Int) async throws -> MeResponse {
+		try await send(
+			path: "auth/experience",
+			method: "POST",
+			body: UpdateExperienceRequest(experience: experience),
+			token: token,
+			responseType: MeResponse.self)
 	}
 	
 	private func send<T: Decodable, Body: Encodable>(path: String, method: String, body: Body?, token: String?, responseType: T.Type) async throws -> T {

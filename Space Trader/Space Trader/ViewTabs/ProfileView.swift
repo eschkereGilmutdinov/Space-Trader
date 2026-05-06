@@ -4,28 +4,44 @@ struct ProfileView: View {
 	@EnvironmentObject var sessionStore: SessionStore
 	private let backgroundImageName = "ProfileBackground"
 	
-    var body: some View {
-		HStack {
-			ZStack {
-				Image(backgroundImageName)
-					.resizable()
-					.scaledToFit()
-					.ignoresSafeArea()
-				Button(role: .destructive) {
-					Task {
-						await sessionStore.logout()
+	var body: some View {
+		ZStack {
+			Image(backgroundImageName)
+				.resizable()
+				.scaledToFill()
+				.ignoresSafeArea()
+			
+			Color.black.opacity(0.35)
+				.ignoresSafeArea()
+			
+			ScrollView {
+				VStack(spacing: 20) {
+					ProfileHeaderView(
+						username: sessionStore.username,
+						userId: sessionStore.userId
+					)
+					.environmentObject(sessionStore)
+					ProfileStatsCardView(
+						level: sessionStore.displayedLevel,
+						currentLevelExperience: sessionStore.currentLevelExperience,
+						nextLevelExperience: sessionStore.nextLevelExperience,
+						currentLevelProgress: sessionStore.currentLevelProgress,
+						balance: sessionStore.balance ?? 0
+					)
+					LogoutButtonView{
+						Task {
+							await sessionStore.logout()
+						}
 					}
-				} label: {
-					Text("Выйти")
-						.frame(maxWidth: .infinity)
-						.padding()
-						.background(Color.red)
-						.foregroundColor(.white)
-						.cornerRadius(12)
 				}
-				.padding(.horizontal)	
+				.padding(.horizontal, 20)
+				.padding(.top, 40)
+				.padding(.bottom, 24)
 			}
-			.padding()
+			.frame(maxWidth: .infinity, maxHeight: .infinity)
+			.refreshable {
+				try? await sessionStore.refreshProfile()
+			}
 		}
-    }
+	}
 }

@@ -2,26 +2,28 @@ import SwiftUI
 
 struct AuthView: View {
 	@State private var mode: Mode = .login
-
+	private let backgroundAuthView = "AuthBackground"
+	
 	enum Mode {
 		case login
 		case register
 	}
-
+	
 	var body: some View {
-		VStack(spacing: 20) {
-			Picker("Mode", selection: $mode) {
-				Text("Вход").tag(Mode.login)
-				Text("Регистрация").tag(Mode.register)
-			}
-			.pickerStyle(.segmented)
-
+		ZStack {
+			Image(backgroundAuthView)
+				.resizable()
+				.scaledToFill()
+				.ignoresSafeArea()
 			if mode == .login {
-				LoginView()
+				LoginView {
+					mode = .register
+				}
 			} else {
-				RegisterView()
+				RegisterView {
+					mode = .login
+				}
 			}
 		}
-		.padding()
 	}
 }

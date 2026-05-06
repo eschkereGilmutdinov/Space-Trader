@@ -3,6 +3,9 @@ import SwiftUI
 struct StationView: View {
     @Namespace private var ns
     private let backgroundImageName = "Background"
+	
+	@State private var isTraveling = false
+	@State private var travelDestinationName: String?
 
     var body: some View {
         NavigationStack {

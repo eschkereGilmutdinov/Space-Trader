@@ -16,12 +16,40 @@ final class User: Model, Content {
 	@Timestamp(key: "created_at", on: .create)
 	var createdAt: Date?
 	
+	@Field(key: "level")
+	var level: Int
+	
+	@Field(key: "experience")
+	var experience: Int
+	
+	@Field(key: "balance")
+	var balance: Double
+	
+	@Field(key: "speed_upgrade_level")
+	var speedUpgradeLevel: Int
+	
+	@Field(key: "profit_upgrade_level")
+	var profitUpgradeLevel: Int
+	
+	@Field(key: "fuel_efficiency_upgrade_level")
+	var fuelEfficiencyUpgradeLevel: Int
+	
+	@Field(key: "durability_upgrade_level")
+	var durabilityUpgradeLevel: Int
+	
 	init() {}
 	
-	init(id: UUID? = nil, username: String, passwordHash: String) {
+	init(id: UUID? = nil, username: String, passwordHash: String, level: Int = 1, experience: Int = 0, balance: Double = 1000, speedUpgradeLevel: Int = 0, profitUpgradeLevel: Int = 0, fuelEfficiencyUpgradeLevel: Int = 0, durabilityUpgradeLevel: Int = 0) {
 		self.id = id
 		self.username = username
 		self.passwordHash = passwordHash
+		self.level = level
+		self.experience = experience
+		self.balance = balance
+		self.speedUpgradeLevel = speedUpgradeLevel
+		self.profitUpgradeLevel = profitUpgradeLevel
+		self.fuelEfficiencyUpgradeLevel = fuelEfficiencyUpgradeLevel
+		self.durabilityUpgradeLevel = durabilityUpgradeLevel
 	}
 }
 

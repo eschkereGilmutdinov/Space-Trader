@@ -22,6 +22,8 @@ public func configure(_ app: Application) async throws {
 	
 	app.migrations.add(CreateUser())
 	app.migrations.add(CreateUserSession())
-	
+	app.migrations.add(AddUserStatsField())
+	app.migrations.add(CreateUserInventoryItem())
+	app.migrations.add(AddUserUpgradeFields())
     try routes(app)
 }
