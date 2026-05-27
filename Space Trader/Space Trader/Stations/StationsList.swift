@@ -2,7 +2,7 @@ import Foundation
 
 let stations: [Station] = [
     Station(
-		id: "alpha-orbital",
+		id: Constants.PlanetName.alphaOrbital,
         name: "Альфа-Орбиталь",
         type: "Орбитальная",
         description: "Крупный торговый узел на низкой орбите планеты Альфа.",

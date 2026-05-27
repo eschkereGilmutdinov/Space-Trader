@@ -15,6 +15,8 @@ final class SessionStore: ObservableObject {
 	@Published var currentStationID: String
 	@Published var inventory: [InventoryItem] = []
 	@Published var upgrades = UserUpgradesResponse(speedLevel: 0, profitLevel: 0, fuelEfficiencyLevel: 0, durabilityLevel: 0, maxLevel: 10, speedCost: 300, profitCost: 300, fuelEfficiencyCost: 300, durabilityCost: 300)
+	@Published var fuel: Int
+	@Published var pendingTravelEvent: TravelEventResponse?
 	
 	private let tokenKey = "sessionToken"
 	private let userIdKey = "userId"
@@ -23,8 +25,10 @@ final class SessionStore: ObservableObject {
 	private let experienceKey = "experience"
 	private let balanceKey = "balance"
 	private let currentStationKey = "currentStation"
+	private let fuelKey = "fuel"
 	
 	private let experiencePerLevel = 500
+	let maxFuel = 100
 	
 	init() {
 		token = UserDefaults.standard.string(forKey: tokenKey)
@@ -35,12 +39,15 @@ final class SessionStore: ObservableObject {
 		let savedExperience = UserDefaults.standard.object(forKey: experienceKey) as? Int
 		let savedBalance = UserDefaults.standard.object(forKey: balanceKey) as? Double
 		let savedStation = UserDefaults.standard.string(forKey: currentStationKey)
+		let savedFuel = UserDefaults.standard.object(forKey: fuelKey) as? Int
 		
 		level = savedLevel ?? 1
 		experience = savedExperience ?? 0
 		balance = savedBalance ?? 1000
 		currentStationID = savedStation ?? stations.first?.id ?? ""
 		
+		fuel = min(max(savedFuel ?? maxFuel, 0), maxFuel)
+		currentStationID = savedStation ?? stations.first?.id ?? ""
 		loadAvatarFromDisk()
 	}
 	
@@ -74,6 +81,45 @@ final class SessionStore: ObservableObject {
 	
 	var displayedLevel: Int {
 		level ?? 1
+	}
+	
+	func baseFuelCost(to station: Station) -> Int? {
+		guard station.id != currentStationID else { return 0 }
+		return stationRouteCosts[currentStationID]?[station.id]
+	}
+	
+	func effectiveFuelCost(to station: Station) -> Int? {
+		guard let baseCost = baseFuelCost(to: station) else { return nil }
+		
+		let discount = min(0.6, Double(upgrades.fuelEfficiencyLevel) * 0.08)
+		return max(1, Int(ceil(Double(baseCost) * (1.0 - discount))))
+	}
+	
+	func canTravel(to station: Station) -> Bool {
+		guard let cost = effectiveFuelCost(to: station) else { return false }
+		return fuel >= cost
+	}
+	
+	func travel(to station: Station) async throws -> TravelResponse? {
+		guard let token else { return nil }
+		guard station.id != currentStationID else { return nil }
+		
+		let response = try await APIClient.shared.travel(token: token, stationID: station.id)
+		
+		apply(me: response.user)
+		
+		if let event = response.event {
+			pendingTravelEvent = event
+		}
+		
+		return response
+	}
+	
+	func buyFuel(amount: Int) async throws {
+		guard let token else { return }
+		
+		let response = try await APIClient.shared.buyFuel(token: token, amount: amount)
+		apply(me: response.user)
 	}
 	
 	func refreshUpgrades() async {
@@ -191,6 +237,8 @@ final class SessionStore: ObservableObject {
 		balance = nil
 		inventory = []
 		upgrades = UserUpgradesResponse(speedLevel: 0, profitLevel: 0, fuelEfficiencyLevel: 0, durabilityLevel: 0, maxLevel: 10, speedCost: 300, profitCost: 300, fuelEfficiencyCost: 300, durabilityCost: 300)
+		fuel = maxFuel
+		currentStationID = stations.first?.id ?? ""
 		
 		UserDefaults.standard.removeObject(forKey: tokenKey)
 		UserDefaults.standard.removeObject(forKey: userIdKey)
@@ -198,6 +246,8 @@ final class SessionStore: ObservableObject {
 		UserDefaults.standard.removeObject(forKey: levelKey)
 		UserDefaults.standard.removeObject(forKey: experienceKey)
 		UserDefaults.standard.removeObject(forKey: balanceKey)
+		UserDefaults.standard.removeObject(forKey: fuelKey)
+		UserDefaults.standard.removeObject(forKey: currentStationID)
 	}
 	
 	func saveAvatar(_ image: UIImage) throws {
@@ -255,7 +305,7 @@ final class SessionStore: ObservableObject {
 	}
 	
 	private let stationDemandMultipliers: [String: [String: Double]] = [
-		"alpha-orbital": [
+		Constants.PlanetName.alphaOrbital: [
 			"beta-port": 0.82,
 			"gamma-transit": 1.05,
 			"delta-science": 1.38,
@@ -263,28 +313,28 @@ final class SessionStore: ObservableObject {
 		],
 
 		"beta-port": [
-			"alpha-orbital": 1.22,
+			Constants.PlanetName.alphaOrbital: 1.22,
 			"gamma-transit": 0.88,
 			"delta-science": 1.31,
 			"epsilon-outpost": 1.08
 		],
 
 		"gamma-transit": [
-			"alpha-orbital": 0.91,
+			Constants.PlanetName.alphaOrbital: 0.91,
 			"beta-port": 1.16,
 			"delta-science": 0.79,
 			"epsilon-outpost": 1.34
 		],
 
 		"delta-science": [
-			"alpha-orbital": 1.42,
+			Constants.PlanetName.alphaOrbital: 1.42,
 			"beta-port": 0.86,
 			"gamma-transit": 1.12,
 			"epsilon-outpost": 0.76
 		],
 
 		"epsilon-outpost": [
-			"alpha-orbital": 0.84,
+			Constants.PlanetName.alphaOrbital: 0.84,
 			"beta-port": 1.19,
 			"gamma-transit": 0.93,
 			"delta-science": 1.48
@@ -320,12 +370,16 @@ final class SessionStore: ObservableObject {
 		level = me.level
 		experience = me.experience
 		balance = me.balance
+		fuel = min(max(me.fuel, 0), maxFuel)
+		currentStationID = me.currentStationID
 		
 		UserDefaults.standard.set(me.userId.uuidString, forKey: userIdKey)
 		UserDefaults.standard.set(me.username, forKey: usernameKey)
 		UserDefaults.standard.set(me.level, forKey: levelKey)
 		UserDefaults.standard.set(me.experience, forKey: experienceKey)
 		UserDefaults.standard.set(me.balance, forKey: balanceKey)
+		UserDefaults.standard.set(fuel, forKey: fuelKey)
+		UserDefaults.standard.set(me.currentStationID, forKey: currentStationKey)
 		
 		loadAvatarFromDisk()
 	}

@@ -13,6 +13,8 @@ struct MeResponse: Decodable {
 	let level: Int
 	let experience: Int
 	let balance: Double
+	let fuel: Int
+	let currentStationID: String
 }
 
 struct RegisterRequest: Encodable {
@@ -84,6 +86,58 @@ struct UpgradeRequest: Encodable {
 	let type: String
 }
 
+struct FuelPurchaseRequest: Encodable {
+	let amount: Int
+}
+
+struct FuelPurchaseResponse: Decodable {
+	let user: MeResponse
+}
+
+struct TravelRequest: Encodable {
+	let stationID: String
+}
+
+struct TravelEventResponse: Decodable, Identifiable {
+	let id = UUID()
+	
+	let title: String
+	let description: String
+	let requiredUpgrade: String
+	let requiredUpgradeLevel: Int
+	let avoidChance: Int
+	let avoided: Bool
+	let penaltyDescription: String?
+	
+	enum CodingKeys: String, CodingKey {
+		case title
+		case description
+		case requiredUpgrade
+		case requiredUpgradeLevel
+		case avoidChance
+		case avoided
+		case penaltyDescription
+	}
+}
+
+struct TravelResponse: Decodable {
+	let user: MeResponse
+	let fuelSpent: Int
+	let event: TravelEventResponse?
+}
+
+struct LeaderboardPlayer: Decodable, Identifiable {
+	let username: String
+	let level: Int
+	let balance: Double
+	
+	var id: String { username }
+}
+
+struct LeaderboardResponse: Decodable {
+	let players: [LeaderboardPlayer]
+}
+
 private struct EmptyResponse: Decodable {}
 
 final class APIClient {
@@ -102,6 +156,36 @@ final class APIClient {
 		encoder.dateEncodingStrategy = .iso8601
 		return encoder
 	}()
+	
+	func leaderboard(token: String, sort: String) async throws -> LeaderboardResponse {
+		try await send(
+			path: "/auth/leaderboard/\(sort)",
+			method: "GET",
+			body: Optional<String>.none,
+			token: token,
+			responseType: LeaderboardResponse.self
+		)
+	}
+	
+	func buyFuel(token: String, amount: Int) async throws -> FuelPurchaseResponse {
+		try await send(
+			path: "/auth/fuel/buy",
+			method: "POST",
+			body: FuelPurchaseRequest(amount: amount),
+			token: token,
+			responseType: FuelPurchaseResponse.self
+		)
+	}
+	
+	func travel(token: String, stationID: String) async throws -> TravelResponse {
+		try await send(
+			path: "/auth/stations/travel",
+			method: "POST",
+			body: TravelRequest(stationID: stationID),
+			token: token,
+			responseType: TravelResponse.self
+		)
+	}
 	
 	func upgrades(token: String) async throws -> UserUpgradesResponse {
 		try await send(
@@ -145,7 +229,7 @@ final class APIClient {
 	
 	func sell(token: String, stationId: String, itemId: String) async throws -> TradeResponse {
 		try await send(
-			path: "auth/trade/sell",
+			path: "/auth/trade/sell",
 			method: "POST",
 			body: TradeRequest(stationId: stationId, itemId: itemId),
 			token: token,
@@ -195,7 +279,7 @@ final class APIClient {
 	
 	func updateExperience(token: String, experience: Int) async throws -> MeResponse {
 		try await send(
-			path: "auth/experience",
+			path: "/auth/experience",
 			method: "POST",
 			body: UpdateExperienceRequest(experience: experience),
 			token: token,

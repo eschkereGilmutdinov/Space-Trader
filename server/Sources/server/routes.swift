@@ -24,6 +24,8 @@ struct MeResponse: Content {
 	let level: Int
 	let experience: Int
 	let balance: Double
+	let fuel: Int
+	let currentStationID: String
 }
 
 struct InventoryItemResponse: Content {
@@ -70,12 +72,178 @@ struct UpgradePurchaseResponse: Content {
 	let upgrades: UserUpgradesResponse
 }
 
+struct FuelPurchaseRequest: Content {
+	let amount: Int
+}
+
+struct FuelPurchaseResponse: Content {
+	let user: MeResponse
+}
+
+struct TravelRequest: Content {
+	let stationID: String
+}
+
+struct TravelEventResponse: Content {
+	let title: String
+	let description: String
+	let requiredUpgrade: String
+	let requiredUpgradeLevel: Int
+	let avoidChance: Int
+	let avoided: Bool
+	let penaltyDescription: String?
+}
+
+struct TravelResponse: Content {
+	let user: MeResponse
+	let fuelSpent: Int
+	let event: TravelEventResponse?
+}
+
+struct LeaderboardPlayerResponse: Content {
+	let username: String
+	let level: Int
+	let balance: Double
+}
+
+struct LeaderboardResponse: Content {
+	let players: [LeaderboardPlayerResponse]
+}
+
+private enum TravelEventKind: CaseIterable {
+	case meteorField
+	case pirateChase
+}
+
+private func travelEventAvoidChance(forUpgradeLevel level: Int) -> Int {
+	let baseChance = 35
+	let bonusPerLevel = 6
+	return min(90, baseChance + max(0, level) * bonusPerLevel)
+}
+
+private func makeTravelEvent(for user: User) -> TravelEventResponse? {
+	guard Int.random(in: 1...100) <= 25 else { return nil }
+	
+	let kind = TravelEventKind.allCases.randomElement() ?? .meteorField
+	
+	let title: String
+	let successDescription: String
+	let failureDescription: String
+	let requiredUpgrade: String
+	let requiredUpgradeLevel: Int
+	
+	switch kind {
+	case .meteorField:
+		title = "Метеоритное поле"
+		successDescription = "Прочность корпуса помогла пройти опасный участок без потерь"
+		failureDescription = "Корпус получил повреждения, пришлось потратить часть топлива на аварийные маневры"
+		requiredUpgrade = "Прочность"
+		requiredUpgradeLevel = user.durabilityUpgradeLevel
+	case .pirateChase:
+		title = "Пиратская погоня"
+		successDescription = "Скорость корабля помогла оторваться от преследователей"
+		failureDescription = "Пираты настигли корабль и забрали часть кредитов"
+		requiredUpgrade = "Скорость"
+		requiredUpgradeLevel = user.durabilityUpgradeLevel
+	}
+	
+	let avoidChance = travelEventAvoidChance(forUpgradeLevel: requiredUpgradeLevel)
+	let avoided = Int.random(in: 1...100) <= avoidChance
+	
+	if avoided {
+		return TravelEventResponse(
+			title: title,
+			description: successDescription,
+			requiredUpgrade: requiredUpgrade,
+			requiredUpgradeLevel: requiredUpgradeLevel,
+			avoidChance: avoidChance,
+			avoided: true,
+			penaltyDescription: nil
+		)
+	}
+	
+	let penaltyDescription: String
+	
+	switch kind {
+	case .meteorField:
+		let fuelPenalty = min(user.fuel, Int.random(in: 6...14))
+		user.fuel -= fuelPenalty
+		penaltyDescription = "Потеряно топлива: \(fuelPenalty)"
+	case .pirateChase:
+		let balancePenalty = min(user.balance, Double(Int.random(in: 80...180)))
+		user.balance -= balancePenalty
+		penaltyDescription = "Потеряно денег: \(Int(balancePenalty.rounded()))"
+	}
+	
+	return TravelEventResponse(
+		title: title,
+		description: failureDescription,
+		requiredUpgrade: requiredUpgrade,
+		requiredUpgradeLevel: requiredUpgradeLevel,
+		avoidChance: avoidChance,
+		avoided: false,
+		penaltyDescription: penaltyDescription
+	)
+}
+
 private struct TradeCatalogItem {
 	let id: String
 	let name: String
 	let price: Int
 	let description: String
 	let stationId: String
+}
+
+private let maxFuel = 100
+private let fuelUnitPrice = 8.0
+private let defaultStationID = "alpha-orbital"
+
+private struct StationRoute {
+	let from: String
+	let to: String
+	let fuelCost: Int
+}
+
+private let stationRoutes: [StationRoute] = [
+	StationRoute(from: "alpha-orbital", to: "beta-port", fuelCost: 18),
+	StationRoute(from: "alpha-orbital", to: "gamma-transit", fuelCost: 26),
+	StationRoute(from: "beta-port", to: "gamma-transit", fuelCost: 14),
+	StationRoute(from: "beta-port", to: "epsilon-outpost", fuelCost: 32),
+	StationRoute(from: "gamma-transit", to: "delta-science", fuelCost: 22),
+	StationRoute(from: "gamma-transit", to: "epsilon-outpost", fuelCost: 28),
+	StationRoute(from: "delta-science", to: "epsilon-outpost", fuelCost: 20),
+	StationRoute(from: "delta-science", to: "alpha-orbital", fuelCost: 34)
+]
+
+private let stationIDs: Set<String> = [
+	"alpha-orbital",
+	"beta-port",
+	"gamma-transit",
+	"delta-science",
+	"epsilon-outpost"
+]
+
+private let stationRouteCosts: [String: [String: Int]] = {
+	var result: [String: [String: Int]] = [:]
+	
+	for route in stationRoutes {
+		result[route.from, default: [:]][route.to] = route.fuelCost
+		result[route.to, default: [:]][route.from] = route.fuelCost
+	}
+	
+	return result
+}()
+
+private func effectiveFuelCost(
+	from currentStationID: String,
+	to destinationStationID: String,
+	fuelEfficiencyLevel: Int
+) -> Int? {
+	guard currentStationID != destinationStationID else { return 0 }
+	guard let baseCost = stationRouteCosts[currentStationID]?[destinationStationID] else { return nil}
+	
+	let discount = min(0.6, Double(fuelEfficiencyLevel) * 0.08)
+	return max(1, Int(ceil(Double(baseCost) * (1.0 - discount))))
 }
 
 private let maxUpgradeLevel = 10
@@ -233,7 +401,9 @@ private func meResponse(for user: User) throws -> MeResponse {
 		username: user.username,
 		level: user.level,
 		experience: user.experience,
-		balance: user.balance
+		balance: user.balance,
+		fuel: user.fuel,
+		currentStationID: user.currentStationID
 	)
 }
 
@@ -277,6 +447,97 @@ private func experienceReward(buyPrice: Int, sellPrice: Int) -> Int {
 
 func routes(_ app: Application) throws {
 	let auth = app.grouped("auth")
+	
+	auth.get("leaderboard", ":sort") { req async throws -> LeaderboardResponse in
+		_ = try await requireActiveSession(req)
+		
+		let sort = req.parameters.get("sort") ?? "level"
+		let users: [User]
+		
+		switch sort {
+		case "balance":
+			users = try await User.query(on: req.db)
+				.sort(\.$balance, .descending)
+				.limit(10)
+				.all()
+		default:
+			users = try await User.query(on: req.db)
+				.sort(\.$level, .descending)
+				.sort(\.$experience, .descending)
+				.limit(10)
+				.all()
+		}
+		
+		return LeaderboardResponse (
+			players: users.map {
+				LeaderboardPlayerResponse(
+					username: $0.username, level: $0.level, balance: $0.balance
+				)
+			}
+		)
+	}
+	auth.post("fuel", "buy") { req async throws -> FuelPurchaseResponse in
+		let session = try await requireActiveSession(req)
+		let data = try req.content.decode(FuelPurchaseRequest.self)
+		let user = session.user
+		
+		guard data.amount > 0 else {
+			throw Abort(.badRequest, reason: "Fuel amount must be positive")
+		}
+		
+		let amount = min(data.amount, maxFuel - user.fuel)
+		
+		guard amount > 0 else {
+			throw Abort(.badRequest, reason: "Fuel ship is already full")
+		}
+		
+		let price = Double(amount) * fuelUnitPrice
+		
+		guard user.balance >= price else {
+			throw Abort(.badRequest, reason: "Not enough balance")
+		}
+		
+		user.balance -= price
+		user.fuel += amount
+		
+		try await user.save(on: req.db)
+		
+		return FuelPurchaseResponse(user: try meResponse(for: user))
+	}
+	
+	auth.post("stations","travel") { req async throws -> TravelResponse in
+		let session = try await requireActiveSession(req)
+		let data = try req.content.decode(TravelRequest.self)
+		let user = session.user
+		let destinationStationID = data.stationID
+		
+		guard stationIDs.contains(destinationStationID) else {
+			throw Abort(.badRequest, reason: "Unknown station")
+		}
+		
+		guard user.currentStationID != destinationStationID else {
+			return TravelResponse(user: try meResponse(for: user), fuelSpent: 0, event: nil)
+		}
+		
+		guard let fuelCost = effectiveFuelCost(
+			from: user.currentStationID,
+			to: destinationStationID,
+			fuelEfficiencyLevel: user.fuelEfficiencyUpgradeLevel
+		) else {
+			throw Abort(.badRequest, reason: "Route is not available")
+		}
+		
+		guard user.fuel >= fuelCost else {
+			throw Abort(.badRequest, reason: "Not enough fuel")
+		}
+		
+		user.fuel -= fuelCost
+		let event = makeTravelEvent(for: user)
+		user.currentStationID = destinationStationID
+		
+		try await user.save(on: req.db)
+		return TravelResponse(user: try meResponse(for: user), fuelSpent: fuelCost, event: event)
+	}
 	
 	auth.get("upgrades") { req async throws -> UserUpgradesResponse in
 		let session = try await requireActiveSession(req)
@@ -324,6 +585,14 @@ func routes(_ app: Application) throws {
 		
 		guard let catalogItem = tradeCatalog.first(where: { $0.id == data.itemId }) else {
 			throw Abort(.badRequest, reason: "Unknown trade item")
+		}
+		
+		guard user.currentStationID == data.stationId else {
+			throw Abort (.badRequest, reason: "You can buy only on your current station")
+		}
+		
+		guard catalogItem.stationId == data.stationId else {
+			throw Abort(.badRequest, reason: "This item is not sold on this station")
 		}
 		
 		guard catalogItem.stationId == data.stationId else {
@@ -379,6 +648,14 @@ func routes(_ app: Application) throws {
 		
 		guard let catalogItem = tradeCatalog.first(where: { $0.id == data.itemId }) else {
 			throw Abort(.badRequest, reason: "Unknown trade item")
+		}
+		
+		guard user.currentStationID == data.stationId else {
+			throw Abort(.badRequest, reason: "You can sell only on your current station")
+		}
+
+		guard catalogItem.stationId != data.stationId else {
+			throw Abort(.badRequest, reason: "This station does not buy its own goods")
 		}
 		
 		guard catalogItem.stationId != data.stationId else {

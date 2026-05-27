@@ -38,3 +38,33 @@ struct Station: Identifiable, Hashable {
 		self.tradeItems = tradeItems
     }
 }
+
+struct StationRoute: Identifiable, Hashable {
+	let from: String
+	let to: String
+	let fuelCost: Int
+	
+	var id: String { "\(from)-\(to)" }
+}
+
+let stationRoutes: [StationRoute] = [
+	StationRoute(from: Constants.PlanetName.alphaOrbital, to: "beta-port", fuelCost: 18),
+	StationRoute(from: Constants.PlanetName.alphaOrbital, to: "gamma-transit", fuelCost: 26),
+	StationRoute(from: "beta-port", to: "gamma-transit", fuelCost: 14),
+	StationRoute(from: "beta-port", to: "epsilon-outpost", fuelCost: 32),
+	StationRoute(from: "gamma-transit", to: "delta-science", fuelCost: 22),
+	StationRoute(from: "gamma-transit", to: "epsilon-outpost", fuelCost: 28),
+	StationRoute(from: "delta-science", to: "epsilon-outpost", fuelCost: 20),
+	StationRoute(from: "delta-science", to: Constants.PlanetName.alphaOrbital, fuelCost: 34)
+]
+
+let stationRouteCosts: [String: [String: Int]] = {
+	var result: [String: [String: Int]] = [:]
+	
+	for route in stationRoutes {
+		result[route.from, default: [:]][route.to] = route.fuelCost
+		result[route.to, default: [:]][route.from] = route.fuelCost
+	}
+	
+	return result
+}()

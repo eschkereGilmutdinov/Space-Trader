@@ -2,20 +2,28 @@ import SwiftUI
 
 struct StationDetailView: View {
 	@EnvironmentObject private var session: SessionStore
+	@Environment(\.dismiss) private var dismiss
+	
 	@State private var isTraveling = false
 	@State private var travelDestinationName: String?
+	@State private var showFuelShop = false
+	@State private var travelErrorMessage: String?
 	
     private let backgroundImageName = "Background"
     let station: Station
+	
+	private var isCurrentStation: Bool {
+		session.currentStationID == station.id
+	}
     
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
-            
             Image(backgroundImageName)
                 .resizable()
                 .scaledToFill()
                 .ignoresSafeArea()
+			Color.black.opacity(0.7).ignoresSafeArea()
+			
             ScrollView {
                 VStack(spacing: 16) {
                     Image(station.imageName ?? "globe")
@@ -32,6 +40,15 @@ struct StationDetailView: View {
                         .font(.custom("Montserrat-Regular", size: 20))
                         .foregroundStyle(Color(.white))
                         .multilineTextAlignment(.leading)
+					
+					RouteFuelInfoView(station: station)
+
+					if let travelErrorMessage {
+						Text(travelErrorMessage)
+							.font(.custom("Montserrat-Regular", size: 15))
+							.foregroundStyle(.red)
+					}
+					
 					VStack (alignment: .leading, spacing: 10) {
 						Text("Товары станции")
 							.font(.custom("Montserrat-Bold", size: 22))
@@ -62,7 +79,7 @@ struct StationDetailView: View {
 					Button {
 						travel(to: station)
 					} label: {
-						Text(session.currentStationID == station.id ? "Вы уже на этой станции" : "Переместиться")
+						Text(travelButtonTitle)
 							.font(.custom("Montserrat-Regular", size: 18))
 							.frame(maxWidth: .infinity)
 							.padding(.vertical, 14)
@@ -79,6 +96,9 @@ struct StationDetailView: View {
                 .padding()
             }
         }
+		.sheet(isPresented: $showFuelShop) {
+			FuelPurchaseView()
+		}
 		.overlay {
 			if isTraveling {
 				TravelLoadingView(destinationName: travelDestinationName)
@@ -88,19 +108,56 @@ struct StationDetailView: View {
 		.animation(.easeInOut(duration: 0.25), value: isTraveling)
     }
 	
+	private var travelButtonTitle: String {
+		if session.currentStationID == station.id {
+			return "Вы уже на этой станции"
+		}
+		
+		guard let cost = session.effectiveFuelCost(to: station) else {
+			return "Маршрут недоступен"
+		}
+		
+		return "Переместиться - \(cost) топлива"
+	}
+	
 	private func travel(to station: Station) {
 		guard !isTraveling else { return }
+		guard session.currentStationID != station.id else { return }
+		guard session.effectiveFuelCost(to: station) != nil else { return }
 		
+		guard session.canTravel(to: station) else {
+			showFuelShop = true
+			return
+		}
+		
+		travelErrorMessage = nil
 		travelDestinationName = station.name
 		isTraveling = true
 		
 		Task { @MainActor in
-			try? await Task.sleep(nanoseconds: 1_300_000_000)
-			session.moveToStation(station)
-			withAnimation(.easeInOut(duration: 0.25)) {
-				isTraveling = false
+			do {
+				try? await Task.sleep(nanoseconds: 1_300_000_000)
+				_ = try await session.travel(to: station)
+				
+				withAnimation(.easeInOut(duration: 0.25)) {
+					isTraveling = false
+				}
+				
+				travelDestinationName = nil
+				dismiss()
+			} catch {
+				travelErrorMessage = error.localizedDescription
+
+				if !session.canTravel(to: station) {
+					showFuelShop = true
+				}
+				
+				withAnimation(.easeInOut(duration: 0.25)) {
+					isTraveling = false
+				}
+
+				travelDestinationName = nil
 			}
-			travelDestinationName = nil
 		}
 	}
 }

@@ -8,6 +8,7 @@ struct ContentView: View {
 		case trade
 		case upgrade
 		case profile
+		case leaderboard
 	}
 
 	@State private var selectedTab: Tab = .home
@@ -18,23 +19,29 @@ struct ContentView: View {
 				ProgressView("Проверка сессии...")
 			} else if session.isLoggedIn {
 				TabView(selection: $selectedTab) {
-					StationView()
+					UpgradeView()
 						.tabItem {
-							Label("Станции", systemImage: "house")
+							Label("Улучшения", systemImage: "globe")
 						}
-						.tag(Tab.home)
+						.tag(Tab.upgrade)
 
 					TradeView()
 						.tabItem {
 							Label("Торговля", systemImage: "cart")
 						}
 						.tag(Tab.trade)
-
-					UpgradeView()
+					
+					StationView()
 						.tabItem {
-							Label("Улучшения", systemImage: "globe")
+							Label("Станции", systemImage: "house")
 						}
-						.tag(Tab.upgrade)
+						.tag(Tab.home)
+					
+					LeaderboardView()
+						.tabItem {
+							Label("Рейтинг", systemImage: "trophy")
+						}
+						.tag(Tab.leaderboard)
 
 					ProfileView()
 						.tabItem {
@@ -42,6 +49,7 @@ struct ContentView: View {
 						}
 						.tag(Tab.profile)
 				}
+				.preferredColorScheme(.dark)
 			} else {
 				AuthView()
 			}

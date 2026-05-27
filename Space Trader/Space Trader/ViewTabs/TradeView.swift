@@ -29,12 +29,11 @@ struct TradeView: View {
 	var body: some View {
 		NavigationStack {
 			ZStack {
-				Color.black.ignoresSafeArea()
-				
 				Image(backgroundImageName)
 					.resizable()
 					.scaledToFill()
 					.ignoresSafeArea()
+				Color.black.opacity(0.7).ignoresSafeArea()
 				
 				ScrollView {
 					VStack(alignment: .leading, spacing: 12) {
